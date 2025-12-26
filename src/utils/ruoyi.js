@@ -2,7 +2,14 @@
  * 通用js方法封装处理
  * Copyright (c) 2019 ruoyi
  */
-
+import { truncateFront, truncateBack, formatId } from './string-util'
+import { copyToClipboard } from './clipboard'
+export {
+  truncateFront,
+  truncateBack,
+  formatId,
+  copyToClipboard
+}
 // 日期格式化
 export function parseTime(time, pattern) {
   if (arguments.length === 0 || !time) {
