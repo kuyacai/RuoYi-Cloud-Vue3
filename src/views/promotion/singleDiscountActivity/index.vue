@@ -64,7 +64,7 @@
             :activity-data="item"
             @edit="handleUpdate"
             @exportProduct="handleExportProduct"
-            @importProduct = "handleImportProduct"
+            @importProduct="handleImportProduct"
           />
         </el-col>
       </el-row>
@@ -179,28 +179,28 @@
       </el-form>
     </el-dialog>
 
-  <!-- 导入弹窗 -->
-  <ElDialog
-    v-model="importDialogVisible"
-    :title="importDialogTitle"
-    width="60%"
-    top="5vh"
-    :destroy-on-close="true"
-    @closed="handleImportDialogClose"
-  >
-    <ImportPanel
-      v-if="importDialogVisible"
-      :type="currentImportType.type"
-      :title="currentImportType.title"
-      :import-api="currentImportType.importApi"
-      :download-api="handleDownloadTemplate"
-      :extra-fields="currentImportType.extraFields"
-      :extra-params="currentImportType.extraParams"
-      @import-success="handleImportSuccess"
-    />
-  </ElDialog>
+    <!-- 导入弹窗 -->
+    <ElDialog
+      v-model="importDialogVisible"
+      :title="importDialogTitle"
+      width="60%"
+      top="5vh"
+      :destroy-on-close="true"
+      @closed="handleImportDialogClose"
+    >
+      <ImportPanel
+        v-if="importDialogVisible"
+        :type="currentImportType.type"
+        :title="currentImportType.title"
+        :import-api="currentImportType.importApi"
+        :download-api="handleDownloadTemplate"
+        :extra-fields="currentImportType.extraFields"
+        :extra-params="currentImportType.extraParams"
+        @import-success="handleImportSuccess"
+      />
+    </ElDialog>
 
-  <!-- 导入结果弹窗 -->
+    <!-- 导入结果弹窗 -->
     <ElDialog
       v-model="resultDialogVisible"
       title="导入结果"
@@ -249,12 +249,11 @@
         </ElButton>
       </template>
     </ElDialog>
-
-
   </div>
 </template>
 
 <script setup name="SingleActivity">
+import { ElMessage } from "element-plus";
 import {
   listActivity,
   getActivity,
@@ -263,10 +262,10 @@ import {
   updateActivity,
 } from "@/api/promotion/singleDiscountActivity";
 import SingleActivityCard from "@/components/SingleActivityCard/index.vue";
-import ImportPanel from '@/components/ImportPanel/index.vue'
+import ImportPanel from "@/components/ImportPanel/index.vue";
 import * as importApi from "@/api/product/import";
 import dayjs from "dayjs";
-
+import {exportSingleDiscountProduct} from "@/api/promotion/singleDiscountActivity";
 const { proxy } = getCurrentInstance();
 
 // 响应式变量
@@ -286,23 +285,22 @@ const startTime = ref("");
 const endDate = ref("");
 const endTime = ref("");
 
-
 // 导入相关状态
-const importDialogVisible = ref(false)
-const resultDialogVisible = ref(false)
-const importResult = ref(null)
+const importDialogVisible = ref(false);
+const resultDialogVisible = ref(false);
+const importResult = ref(null);
 
 // 当前导入配置
 const currentImportType = reactive({
-  type: 'singlediscountproduct',
-  title: '活动商品',
-  importApi: importSingleDiscountProduct,
+  type: "singlediscountproduct",
+  title: "单品直降活动商品",
+  importApi: importApi.importSingleDiscount,
   extraFields: [],
-  extraParams: {}
-})
+  extraParams: {},
+});
 
 // 导入弹窗标题
-const importDialogTitle = ref('导入活动商品')
+const importDialogTitle = ref("导入活动商品");
 
 // 列配置（保持原样）
 const columnsPerRow = {
@@ -491,70 +489,70 @@ function handleUpdate(row) {
 // 处理导出商品
 const handleExportProduct = async (activityId) => {
   try {
-    ElMessage.info('正在导出，请稍候...')
-    
-    const response = await exportSingleDiscountProduct({ activityId })
-    
+    ElMessage.info("正在导出，请稍候...");
+
+    const response = await exportSingleDiscountProduct({ 'activityId':activityId });
+
     // 创建下载链接
-    const url = window.URL.createObjectURL(new Blob([response]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `activity_${activityId}_products.xlsx`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
-    
-    ElMessage.success('导出成功')
+    const url = window.URL.createObjectURL(new Blob([response]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `activity_${activityId}_products.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    ElMessage.success("导出成功");
   } catch (error) {
-    ElMessage.error('导出失败: ' + (error.message || error))
+    ElMessage.error("导出失败: " + (error.message || error));
   }
-}
+};
 
 // 处理导入商品
 const handleImportProduct = (activityId) => {
   // 设置额外的参数（activityId）
-  currentImportType.extraParams = { 
-    activityId: String(activityId) 
-  }
-  
+  currentImportType.extraParams = {
+    activityId: String(activityId),
+  };
+
   // 更新弹窗标题
-  importDialogTitle.value = `导入活动商品 (活动ID: ${activityId})`
-  
-  importDialogVisible.value = true
-}
+  importDialogTitle.value = `导入活动商品 (活动ID: ${activityId})`;
+
+  importDialogVisible.value = true;
+};
 
 // 下载模板处理函数
 const handleDownloadTemplate = (type) => {
   // 如果当前有activityId，传递给模板下载
-  const params = currentImportType.extraParams.activityId ? 
-    { activityId: currentImportType.extraParams.activityId } : {}
-  
-  return downloadTemplate(type, params)
-}
+  const params = currentImportType.extraParams.activityId
+    ? { activityId: currentImportType.extraParams.activityId }
+    : {};
+
+  return downloadTemplate(type, params);
+};
 
 // 处理导入成功
 const handleImportSuccess = (response, title) => {
-  importDialogVisible.value = false
-  
+  importDialogVisible.value = false;
+
   importResult.value = {
     success: response.code === 200,
     title: `${title}导入完成`,
-    message: response.msg || '导入成功',
-    data: response.data
-  }
-  
-  resultDialogVisible.value = true
-  
+    message: response.msg || "导入成功",
+    data: response.data,
+  };
+
+  resultDialogVisible.value = true;
+
   // 可以在这里刷新活动列表
   // fetchActivityList()
-}
+};
 
 // 关闭导入弹窗
 const handleImportDialogClose = () => {
-  currentImportType.extraParams = {}
-}
-
+  currentImportType.extraParams = {};
+};
 
 const formatDateTimeForBackend = (datetime) => {
   if (!datetime) return null;

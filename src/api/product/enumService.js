@@ -139,6 +139,36 @@ class EnumService {
         this.cache.clear()
         this.promiseCache.clear()
     }
+
+    /**
+   * 格式化枚举显示
+   * @param {*} statusValue 可能是字符串、数字、枚举对象
+   * @returns {string} 显示文本
+   */
+  formatEnumDisplay(statusValue) {
+    if (!statusValue) return ''
+    
+    // 如果是枚举对象
+    if (typeof statusValue === 'object') {
+      return statusValue.label || statusValue.desc || statusValue.name || ''
+    }
+    
+    // 如果是字符串或数字
+    return String(statusValue)
+  }
+
+  /**
+   * 获取枚举值（用于表单提交等需要具体值的场景）
+   */
+  getEnumValue(statusValue) {
+    if (!statusValue) return ''
+    
+    if (typeof statusValue === 'object') {
+      return statusValue.code || statusValue.value || statusValue
+    }
+    
+    return statusValue
+  }
 }
 
 // 创建各模块的枚举服务实例

@@ -42,3 +42,13 @@ export function delActivity(activityId) {
     method: 'delete'
   })
 }
+
+
+export function exportSingleDiscountProduct(query) {
+  return request({
+    url: '/product/promotion/singlediscountactivity/export',
+    method: 'post',
+    params: query,
+    responseType: 'blob' 
+  })
+}

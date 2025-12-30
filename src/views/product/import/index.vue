@@ -69,7 +69,7 @@
     <ElDialog
       v-model="importDialogVisible"
       :title="`导入${currentType?.title}`"
-      width="60%"
+      width="40%"
       top="5vh"
       :destroy-on-close="true"
       @closed="handleDialogClose"
@@ -90,7 +90,7 @@
     <ElDialog
       v-model="resultDialogVisible"
       title="导入结果"
-      width="60%"
+      width="40%"
       :center="false"
     >
       <ElResult
@@ -155,11 +155,12 @@ import {
 } from "@element-plus/icons-vue";
 import ImportPanel from "@/components/ImportPanel/index.vue";
 import * as importApi from "@/api/product/import";
-
+import { getCurrentInstance } from 'vue';
+const { proxy } = getCurrentInstance();
 // 导入类型配置
 const importTypes = [
   {
-    type: "spu",
+    type: "miao_shou_spu",
     title: "SPU数据",
     icon: Document,
     iconClass: "text-blue-500",
@@ -170,7 +171,7 @@ const importTypes = [
     extraParams: {},
   },
   {
-    type: "sku",
+    type: "miao_shou_sku",
     title: "SKU数据",
     icon: Tickets,
     iconClass: "text-green-500",
@@ -181,7 +182,7 @@ const importTypes = [
     extraParams: {},
   },
   {
-    type: "price",
+    type: "simple_product",
     title: "价格文件",
     icon: PriceTag,
     iconClass: "text-purple-500",
@@ -192,7 +193,7 @@ const importTypes = [
     extraParams: {},
   },
   {
-    type: "title",
+    type: "product_title",
     title: "标题文件",
     icon: Edit,
     iconClass: "text-orange-500",
@@ -202,6 +203,7 @@ const importTypes = [
     ],
     extraParams: {},
   },
+  /**
   {
     type: "single_discount",
     title: "单品直降",
@@ -266,7 +268,7 @@ const importTypes = [
       { key: "shopId", label: "商店ID", placeholder: "请输入商店ID（可选）" },
     ],
     extraParams: {},
-  },
+  }, */
 ];
 
 // 状态管理
@@ -284,7 +286,7 @@ const openImportDialog = (typeConfig) => {
 
 // 下载模板
 const downloadTemplateByType = (type) => {
-  return importApi.downloadTemplate(type);
+  proxy.download(`/product/excel/template/${type}`, {}, `${type}_template.xlsx`);
 };
 
 // 导入成功回调

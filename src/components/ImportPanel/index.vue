@@ -14,8 +14,8 @@
           v-for="field in extraFields" 
           :key="field.key"
           :xs="24" 
-          :sm="12" 
-          :md="8"
+          :sm="24" 
+          :md="24"
         >
           <ElFormItem 
             :label="field.label"
@@ -38,14 +38,6 @@
       <ElText type="info" size="small">
         <ElIcon class="mr-1"><Warning /></ElIcon>
         请上传xlsx、xls或csv格式的文件，文件大小不超过10MB
-        <ElButton 
-          type="primary" 
-          link 
-          @click="handleDownload"
-          class="ml-2"
-        >
-          下载{{ title }}模板
-        </ElButton>
       </ElText>
 
       <!-- 上传操作 -->
@@ -232,23 +224,6 @@ const submitUpload = () => {
         ElMessage.error("导入失败：" + error.message)
       })
   }).catch(() => {})
-}
-
-const handleDownload = () => {
-  props.downloadApi(props.type)
-    .then(response => {
-      const url = window.URL.createObjectURL(new Blob([response]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", `${props.type}_template.xlsx`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-    })
-    .catch(error => {
-      ElMessage.error("下载模板失败：" + error.message)
-    })
 }
 </script>
 
