@@ -57,6 +57,26 @@ export const constantRoutes = [
     component: () => import('@/views/error/401'),
     hidden: true
   },
+  // 在 router/index.js 中添加静态路由
+  {
+    path: '/goods-detail-standalone', // 定义一个独立的路径
+    component: () => import('@/views/product/goodsDetail/index'), // 指向你的组件
+    hidden: true,
+    meta: {
+      title: '商品详情',
+      noCache: true
+    }
+  },
+  // 在 router/index.js 中添加静态路由
+  {
+    path: '/goods-detail-compare', // 定义一个独立的路径
+    component: () => import('@/views/product/goodsCompare/index'), // 指向你的组件
+    hidden: true,
+    meta: {
+      title: '商品详情比较',
+      noCache: true
+    }
+  },
   {
     path: '',
     component: Layout,
@@ -159,33 +179,33 @@ export const dynamicRoutes = [
     ]
   },
   // ============== 以下是为你新增的 product 模块路由 ==============
-{
-  path: '/product', // 这是顶级路径，对应你模块的前缀
-  component: Layout, // 使用统一的布局组件
-  // hidden: false, // 默认false，表示需要在侧边栏显示，可以不写
-  // 如果你的菜单需要权限控制，可以在这里或子路由添加 permissions 字段
-  children: [
-    {
-      path: 'goods', // 子路径。注意：这里就是 'goods'，不是 '/goods'
-      component: () => import('@/views/product/goods/index'), // 这是指向你Vue文件的物理路径
-      name: 'ProductGoods', // 路由名称，建议保持唯一性
-      meta: {
-        title: '云商品列表', // 显示在侧边栏和标签页的名称
-        icon: 'goods', // 侧边栏图标，需要确保 '@/assets/icons/svg' 目录下有对应的 goods.svg 文件，否则可以先用默认图标
-        // 权限标识，应与数据库菜单中的 perms 字段（这里是 'product:goods:list'）对应
-        // 如果框架用此字段控制按钮级权限，通常需要在 children 的按钮路由中配置
-        permissions: ['product:goods:list']
+  {
+    path: '/product', // 这是顶级路径，对应你模块的前缀
+    component: Layout, // 使用统一的布局组件
+    // hidden: false, // 默认false，表示需要在侧边栏显示，可以不写
+    // 如果你的菜单需要权限控制，可以在这里或子路由添加 permissions 字段
+    children: [
+      {
+        path: 'goods', // 子路径。注意：这里就是 'goods'，不是 '/goods'
+        component: () => import('@/views/product/goods/index'), // 这是指向你Vue文件的物理路径
+        name: 'ProductGoods', // 路由名称，建议保持唯一性
+        meta: {
+          title: '云商品列表', // 显示在侧边栏和标签页的名称
+          icon: 'goods', // 侧边栏图标，需要确保 '@/assets/icons/svg' 目录下有对应的 goods.svg 文件，否则可以先用默认图标
+          // 权限标识，应与数据库菜单中的 perms 字段（这里是 'product:goods:list'）对应
+          // 如果框架用此字段控制按钮级权限，通常需要在 children 的按钮路由中配置
+          permissions: ['product:goods:list']
+        }
+      },
+      // 如果你还有其他子页面，比如商品分类，可以继续在这里添加
+      {
+        path: 'import',
+        component: () => import('@/views/product/import/index'),
+        name: 'ProductImport',
+        meta: { title: '商品导入', icon: 'import' }
       }
-    },
-    // 如果你还有其他子页面，比如商品分类，可以继续在这里添加
-    {
-       path: 'import',
-       component: () => import('@/views/product/import/index'),
-       name: 'ProductImport',
-       meta: { title: '商品导入', icon: 'import' }
-    }
-  ]
-}
+    ]
+  }
 ]
 
 const router = createRouter({

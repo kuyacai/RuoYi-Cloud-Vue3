@@ -58,6 +58,7 @@
 
       <!-- 其余统计列 -->
       <el-table-column label="总数" align="center" prop="total" />
+      <el-table-column label="重复数" align="center" prop="duplicate" />
       <el-table-column label="成功数" align="center" prop="success" />
       <el-table-column label="跳过数" align="center" prop="skip" />
       <el-table-column label="失败数" align="center" prop="failure" />

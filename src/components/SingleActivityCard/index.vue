@@ -80,7 +80,6 @@
             @click="handleEdit"
             v-hasPermi="['promotion:singleDiscountActivity:edit']"
             plain
-            disabled
           >
             修改
           </el-button>

@@ -101,59 +101,36 @@
 
         <!-- 优惠类型绑定到 form.discountType -->
         <el-form-item label="优惠类型" prop="discountType">
-          <el-radio-group v-model="form.discountType">
-            <el-radio-button value="fixed_price">一口价</el-radio-button>
-            <el-radio-button value="direct_deduction">立减</el-radio-button>
-            <el-radio-button value="discount">折扣</el-radio-button>
-          </el-radio-group>
+          <EnumRadioGroup
+            v-model="form.discountType"
+            enum-name="DiscountType"
+            button
+            size="large"
+          />
         </el-form-item>
 
         <!-- 开始时间 -->
         <el-form-item label="开始时间" prop="startTime">
-          <el-col :span="11">
-            <el-date-picker
-              v-model="startDate"
-              type="date"
-              placeholder="请选择日期"
-              style="width: 100%"
-              @change="updateStartTime"
-            />
-          </el-col>
-          <el-col class="text-center" :span="1" style="margin: 0 0.5rem"
-            >-</el-col
-          >
-          <el-col :span="11">
-            <el-time-picker
-              v-model="startTime"
-              placeholder="请选择时间"
-              style="width: 100%"
-              @change="updateStartTime"
-            />
-          </el-col>
+          <el-date-picker
+            v-model="form.startTime"
+            type="datetime"
+            format="YYYY-MM-DD HH:mm:ss"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="请选择开始时间"
+            style="width: 100%"
+          />
         </el-form-item>
 
         <!-- 结束时间 -->
         <el-form-item label="结束时间" prop="endTime">
-          <el-col :span="11">
-            <el-date-picker
-              v-model="endDate"
-              type="date"
-              placeholder="请选择日期"
-              style="width: 100%"
-              @change="updateEndTime"
-            />
-          </el-col>
-          <el-col class="text-center" :span="1" style="margin: 0 0.5rem"
-            >-</el-col
-          >
-          <el-col :span="11">
-            <el-time-picker
-              v-model="endTime"
-              placeholder="请选择时间"
-              style="width: 100%"
-              @change="updateEndTime"
-            />
-          </el-col>
+          <el-date-picker
+            v-model="form.endTime"
+            type="datetime"
+            format="YYYY-MM-DD HH:mm:ss"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="请选择结束时间"
+            style="width: 100%"
+          />
         </el-form-item>
 
         <el-form-item label="平台活动ID" prop="platformActivityId">
@@ -173,8 +150,17 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button
+            type="primary"
+            @click="submitForm"
+            :loading="submitLoading"
+            :disabled="submitLoading"
+          >
+            {{ submitLoading ? "处理中..." : "确 定" }}
+          </el-button>
+          <el-button @click="cancel" :disabled="submitLoading">
+            取 消
+          </el-button>
         </el-form-item>
       </el-form>
     </el-dialog>
@@ -264,26 +250,18 @@ import {
 import SingleActivityCard from "@/components/SingleActivityCard/index.vue";
 import ImportPanel from "@/components/ImportPanel/index.vue";
 import * as importApi from "@/api/product/import";
-import dayjs from "dayjs";
-import {exportSingleDiscountProduct} from "@/api/promotion/singleDiscountActivity";
+
+import { exportSingleDiscountProduct } from "@/api/promotion/singleDiscountActivity";
+import EnumRadioGroup from "@/components/EnumRadioGroup/index.vue";
+
 const { proxy } = getCurrentInstance();
 
 // 响应式变量
 const activityList = ref([]);
 const open = ref(false);
 const loading = ref(true);
-const ids = ref([]);
-const single = ref(true);
-const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
-const viewMode = ref("card");
-
-// 日期和时间选择器的独立变量
-const startDate = ref("");
-const startTime = ref("");
-const endDate = ref("");
-const endTime = ref("");
 
 // 导入相关状态
 const importDialogVisible = ref(false);
@@ -299,24 +277,16 @@ const currentImportType = reactive({
   extraParams: {},
 });
 
+// loading状态变量
+const submitLoading = ref(false);
 // 导入弹窗标题
 const importDialogTitle = ref("导入活动商品");
-
-// 列配置（保持原样）
-const columnsPerRow = {
-  xs: 24, // 手机：1列
-  sm: 12, // 平板：2列
-  md: 8, // 桌面：3列
-  lg: 8, // 大桌面：3列
-  xl: 6, // 超大屏：4列
-};
-
 // 响应式数据对象
 const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 100,
     activityName: null,
     shopId: null,
     discountType: null,
@@ -342,51 +312,6 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
-// 更新开始时间（合并日期和时间）
-const updateStartTime = () => {
-  if (startDate.value && startTime.value) {
-    const dateStr = dayjs(startDate.value).format("YYYY-MM-DD");
-    const timeStr = dayjs(startTime.value).format("HH:mm:ss");
-    form.value.startTime = `${dateStr} ${timeStr}`;
-  } else {
-    form.value.startTime = "";
-  }
-};
-
-// 更新结束时间（合并日期和时间）
-const updateEndTime = () => {
-  if (endDate.value && endTime.value) {
-    const dateStr = dayjs(endDate.value).format("YYYY-MM-DD");
-    const timeStr = dayjs(endTime.value).format("HH:mm:ss");
-    form.value.endTime = `${dateStr} ${timeStr}`;
-  } else {
-    form.value.endTime = "";
-  }
-};
-
-// 当表单数据回填时，拆分日期和时间
-const splitDateTimeToComponents = () => {
-  if (form.value.startTime) {
-    try {
-      const start = dayjs(form.value.startTime);
-      startDate.value = start.toDate();
-      startTime.value = start.toDate();
-    } catch (e) {
-      console.warn("解析开始时间失败:", e);
-    }
-  }
-
-  if (form.value.endTime) {
-    try {
-      const end = dayjs(form.value.endTime);
-      endDate.value = end.toDate();
-      endTime.value = end.toDate();
-    } catch (e) {
-      console.warn("解析结束时间失败:", e);
-    }
-  }
-};
-
 /** 查询单品直降活动列表 */
 function getList() {
   loading.value = true;
@@ -410,24 +335,21 @@ function reset() {
     activityId: null,
     activityName: null,
     shopId: null,
-    discountType: "fixed_price",
+    discountType: "fixed_price", // 保持默认值
     startTime: null,
     endTime: null,
     discountStatus: null,
     platformActivityId: null,
     notes: null,
     gmtCreate: null,
-    gmtModified: null,
   };
-  // 清空日期时间组件
-  startDate.value = "";
-  startTime.value = "";
-  endDate.value = "";
-  endTime.value = "";
+
   // 这里保持原样
   // 确保清除验证
   nextTick(() => {
-    proxy.$refs.form?.clearValidate();
+    if (proxy.$refs.formRef) {
+      proxy.$refs.formRef.clearValidate();
+    }
   });
   proxy.resetForm("formRef");
   console.log("reset end");
@@ -447,19 +369,6 @@ function resetQuery() {
   handleQuery();
 }
 
-// 多选框选中数据
-function handleSelectionChange(selection) {
-  ids.value = selection.map((item) => item.activityId);
-  single.value = selection.length !== 1;
-  multiple.value = !selection.length;
-}
-
-// 卡片选择处理
-function handleCardSelectionChange(item) {
-  // 卡片模式下也可以实现多选，这里简化处理
-  // 实际可以根据需求添加复选框到卡片组件
-}
-
 /** 新增按钮操作 */
 function handleAdd() {
   console.log("handleAdd");
@@ -475,15 +384,18 @@ function handleAdd() {
 }
 
 /** 修改按钮操作 */
-function handleUpdate(row) {
+async function handleUpdate(row) {
   reset();
-  const activityId = row.activityId || ids.value[0];
-  getActivity(activityId).then((response) => {
+  try {
+    const activityId = row.activityId || ids.value[0];
+    console.log("update activityId:{}",activityId)
+    const response = await getActivity(activityId);
     form.value = response.data;
     open.value = true;
-    splitDateTimeToComponents();
     title.value = "修改单品直降活动";
-  });
+  } catch (error) {
+    proxy.$modal.msgError("获取活动详情失败");
+  }
 }
 
 // 处理导出商品
@@ -491,7 +403,9 @@ const handleExportProduct = async (activityId) => {
   try {
     ElMessage.info("正在导出，请稍候...");
 
-    const response = await exportSingleDiscountProduct({ 'activityId':activityId });
+    const response = await exportSingleDiscountProduct({
+      activityId: activityId,
+    });
 
     // 创建下载链接
     const url = window.URL.createObjectURL(new Blob([response]));
@@ -554,89 +468,41 @@ const handleImportDialogClose = () => {
   currentImportType.extraParams = {};
 };
 
-const formatDateTimeForBackend = (datetime) => {
-  if (!datetime) return null;
-  // 格式化为 ISO 8601
-  return dayjs(datetime).toISOString();
-
-  // 或者格式化为：2025-12-25T00:00:00
-  // return dayjs(datetime).format('YYYY-MM-DDTHH:mm:ss')
-};
 /** 提交按钮 */
 function submitForm() {
   // 这里保持原样
   proxy.$refs["formRef"].validate((valid) => {
     if (valid) {
+      // 禁用按钮并显示loading
+      submitLoading.value = true;
       // 准备提交的数据
       const submitData = {
         ...form.value,
-        startTime: formatDateTimeForBackend(form.value.startTime),
-        endTime: formatDateTimeForBackend(form.value.endTime),
       };
-      if (submitData.activityId != null) {
-        updateActivity(submitData).then((response) => {
-          proxy.$modal.msgSuccess("修改成功");
+      // 创建Promise以便统一处理finally
+      const submitPromise =
+        submitData.activityId != null
+          ? updateActivity(submitData)
+          : addActivity(submitData);
+
+      submitPromise
+        .then((response) => {
+          const successMsg =
+            submitData.activityId != null ? "修改成功" : "新增成功";
+          proxy.$modal.msgSuccess(successMsg);
           open.value = false;
           getList();
+        })
+        .catch((error) => {
+          console.error("提交失败:", error);
+          proxy.$modal.msgError(error.msg || "操作失败，请重试");
+        })
+        .finally(() => {
+          // 无论成功失败，都恢复按钮状态
+          submitLoading.value = false;
         });
-      } else {
-        addActivity(submitData).then((response) => {
-          proxy.$modal.msgSuccess("新增成功");
-          open.value = false;
-          getList();
-        });
-      }
     }
   });
-}
-
-/** 删除按钮操作 */
-function handleDelete(row) {
-  const activityIds = row.activityId || ids.value;
-  proxy.$modal
-    .confirm('是否确认删除单品直降活动编号为"' + activityIds + '"的数据项？')
-    .then(function () {
-      return delActivity(activityIds);
-    })
-    .then(() => {
-      getList();
-      proxy.$modal.msgSuccess("删除成功");
-    })
-    .catch(() => {});
-}
-
-/** 导出按钮操作 */
-function handleExport() {
-  proxy.download(
-    "product/activity/export",
-    {
-      ...queryParams.value,
-    },
-    `activity_${new Date().getTime()}.xlsx`
-  );
-}
-
-// 复制平台活动ID（表格视图使用）
-function copyPlatformId(id) {
-  if (!id) return;
-
-  const textarea = document.createElement("textarea");
-  textarea.value = id;
-  document.body.appendChild(textarea);
-  textarea.select();
-
-  try {
-    const successful = document.execCommand("copy");
-    if (successful) {
-      proxy.$message.success("已复制到剪贴板");
-    } else {
-      proxy.$message.error("复制失败");
-    }
-  } catch (err) {
-    proxy.$message.error("复制失败");
-  }
-
-  document.body.removeChild(textarea);
 }
 
 // 组件加载时获取数据

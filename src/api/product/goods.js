@@ -16,7 +16,14 @@ export function getGoods(goodsId) {
     method: 'get'
   })
 }
-
+// 查询商品信息详情
+export function getDetail(id, status) {
+  return request({
+    url: '/product/goods/detail',
+    method: 'get',
+    params: { id, status } // 这里的 params 会自动拼接到 URL 后变成 ?id=...&status=...
+  })
+}
 // 新增云商品根
 export function addGoods(data) {
   return request({

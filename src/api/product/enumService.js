@@ -59,6 +59,13 @@ class EnumService {
         console.log('模块名:', this.moduleName)
         console.log('请求枚举:', enumNames)
         console.log('请求方式: POST')
+        // 1. 生成唯一的 cacheKey 用于标识这次请求组合
+        const fetchKey = [...enumNames].sort().join(',');
+
+        // 2. 如果当前已经有一个完全一样的请求在处理中，直接返回那个 Promise
+        if (this.promiseCache.has(fetchKey)) {
+            return this.promiseCache.get(fetchKey);
+        }
         const result = {}
         const toFetch = []
 
@@ -73,27 +80,29 @@ class EnumService {
 
         // 批量请求剩余的
         if (toFetch.length > 0) {
-            console.log('实际请求数据:', toFetch)
-            // 使用POST请求，避免GET参数序列化问题
-            try {
-                const response = await request({
-                    url: `/${this.moduleName}/enums/batch`,
-                    method: 'post',
-                    data: toFetch  // 这里是 POST 的 body
-                })
+            const promise = (async () => {
+                try {
+                    const response = await request({
+                        url: `/${this.moduleName}/enums/batch`,
+                        method: 'post',
+                        data: toFetch
+                    });
+                    const data = response.data || response;
+                    Object.entries(data).forEach(([key, value]) => {
+                        this.cache.set(key, value);
+                    });
+                    return data;
+                } finally {
+                    // 请求完成后清除 Promise 缓存
+                    this.promiseCache.delete(fetchKey);
+                }
+            })();
 
-                console.log('响应数据:', response)
-
-                const data = response.data || response
-                Object.entries(data).forEach(([key, value]) => {
-                    this.cache.set(key, value)
-                    result[key] = value
-                })
-            } catch (error) {
-                console.error('请求失败:', error)
-                throw error
-            }
+            this.promiseCache.set(fetchKey, promise);
+            const data = await promise;
+            Object.assign(result, data);
         }
+
 
         console.log('=== EnumService.getEnums 结束 ===')
         return result
@@ -145,30 +154,30 @@ class EnumService {
    * @param {*} statusValue 可能是字符串、数字、枚举对象
    * @returns {string} 显示文本
    */
-  formatEnumDisplay(statusValue) {
-    if (!statusValue) return ''
-    
-    // 如果是枚举对象
-    if (typeof statusValue === 'object') {
-      return statusValue.label || statusValue.desc || statusValue.name || ''
-    }
-    
-    // 如果是字符串或数字
-    return String(statusValue)
-  }
+    formatEnumDisplay(statusValue) {
+        if (!statusValue) return ''
 
-  /**
-   * 获取枚举值（用于表单提交等需要具体值的场景）
-   */
-  getEnumValue(statusValue) {
-    if (!statusValue) return ''
-    
-    if (typeof statusValue === 'object') {
-      return statusValue.code || statusValue.value || statusValue
+        // 如果是枚举对象
+        if (typeof statusValue === 'object') {
+            return statusValue.label || statusValue.desc || statusValue.name || ''
+        }
+
+        // 如果是字符串或数字
+        return String(statusValue)
     }
-    
-    return statusValue
-  }
+
+    /**
+     * 获取枚举值（用于表单提交等需要具体值的场景）
+     */
+    getEnumValue(statusValue) {
+        if (!statusValue) return ''
+
+        if (typeof statusValue === 'object') {
+            return statusValue.code || statusValue.value || statusValue
+        }
+
+        return statusValue
+    }
 }
 
 // 创建各模块的枚举服务实例

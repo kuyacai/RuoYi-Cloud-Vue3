@@ -41,7 +41,7 @@
       </el-form-item>
     </el-form>
 
-    <el-table v-loading="loading" :data="goodsList">
+    <el-table v-loading="loading" :data="goodsList" border>
       <!-- 1. 去掉选择框：已删除 type="selection" 列 -->
       <!-- 1. 序号列 -->
       <el-table-column label="序号" align="center" width="70">
@@ -57,11 +57,72 @@
         label="来源标题"
         align="center"
         prop="sourceTitle"
-        min-width="260"
-      />
+        min-width="300"
+      >
+        <template #default="scope">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 1px;
+            "
+          >
+            <el-link
+              type="primary"
+              @click="openInNewWindow(scope.row, 'default')"
+              style="
+                max-width: 300px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              "
+            >
+              {{ scope.row.sourceTitle }}
+            </el-link>
+
+            <div style="display: flex; gap: 1px; flex-shrink: 0">
+              <el-tag
+                size="small"
+                effect="plain"
+                style="cursor: pointer"
+                @click.stop="openInNewWindow(scope.row, 'frozen')"
+                >原</el-tag
+              >
+
+              <el-tag
+                size="small"
+                type="warning"
+                effect="plain"
+                style="cursor: pointer"
+                @click.stop="openInNewWindow(scope.row, 'editing')"
+                >编</el-tag
+              >
+
+              <el-tag
+                size="small"
+                type="danger"
+                effect="plain"
+                style="cursor: pointer"
+                @click.stop="openInNewWindow(scope.row, 'auditing')"
+                >审核</el-tag
+              >
+
+              <el-tag
+                size="small"
+                type="success"
+                effect="plain"
+                style="cursor: pointer"
+                @click.stop="openInNewWindow(scope.row, 'approved')"
+                >已审</el-tag
+              >
+            </div>
+          </div>
+        </template>
+      </el-table-column>
 
       <!-- 3. 来源：显示“来源”文字，点击新开窗口 -->
-      <el-table-column label="来源" align="center">
+      <el-table-column label="来源" align="center" min-width="30">
         <template #default="scope">
           <a
             :href="scope.row.sourceUrl"
@@ -191,16 +252,11 @@
 </template>
 
 <script setup name="Goods">
-import {
-  listGoods,
-  getGoods,
-  delGoods,
-  addGoods,
-  updateGoods,
-} from "@/api/product/goods";
+import { useRouter } from "vue-router";
+import { listGoods } from "@/api/product/goods";
 
 const { proxy } = getCurrentInstance();
-
+const router = useRouter();
 const goodsList = ref([]);
 const open = ref(false);
 const loading = ref(true);
@@ -243,6 +299,19 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+/** 核心跳转逻辑 */
+const openInNewWindow = (row, status) => {
+  const routeData = router.resolve({
+    path: "/goods-detail-standalone",
+    query: {
+      id: row.goodsId, // 对应 URL 中的 id=abc
+      status: status, // 对应 URL 中的 status
+    },
+  });
+
+  // 利用原生新窗口打开，不会被 RuoYi 的 Tags-View 拦截
+  window.open(routeData.href, "_blank");
+};
 /** 查询云商品根列表 */
 function getList() {
   loading.value = true;
@@ -293,77 +362,7 @@ function resetQuery() {
   handleQuery();
 }
 
-// 多选框选中数据
-function handleSelectionChange(selection) {
-  ids.value = selection.map((item) => item.goodsId);
-  single.value = selection.length != 1;
-  multiple.value = !selection.length;
-}
 
-/** 新增按钮操作 */
-function handleAdd() {
-  reset();
-  open.value = true;
-  title.value = "添加云商品根";
-}
-
-/** 修改按钮操作 */
-function handleUpdate(row) {
-  reset();
-  const _goodsId = row.goodsId || ids.value;
-  getGoods(_goodsId).then((response) => {
-    form.value = response.data;
-    open.value = true;
-    title.value = "修改云商品根";
-  });
-}
-
-/** 提交按钮 */
-function submitForm() {
-  proxy.$refs["goodsRef"].validate((valid) => {
-    if (valid) {
-      if (form.value.goodsId != null) {
-        updateGoods(form.value).then((response) => {
-          proxy.$modal.msgSuccess("修改成功");
-          open.value = false;
-          getList();
-        });
-      } else {
-        addGoods(form.value).then((response) => {
-          proxy.$modal.msgSuccess("新增成功");
-          open.value = false;
-          getList();
-        });
-      }
-    }
-  });
-}
-
-/** 删除按钮操作 */
-function handleDelete(row) {
-  const _goodsIds = row.goodsId || ids.value;
-  proxy.$modal
-    .confirm('是否确认删除云商品根编号为"' + _goodsIds + '"的数据项？')
-    .then(function () {
-      return delGoods(_goodsIds);
-    })
-    .then(() => {
-      getList();
-      proxy.$modal.msgSuccess("删除成功");
-    })
-    .catch(() => {});
-}
-
-/** 导出按钮操作 */
-function handleExport() {
-  proxy.download(
-    "product/goods/export",
-    {
-      ...queryParams.value,
-    },
-    `goods_${new Date().getTime()}.xlsx`
-  );
-}
 
 getList();
 </script>
