@@ -70,7 +70,7 @@
           >
             <el-link
               type="primary"
-              @click="openInNewWindow(scope.row, 'default')"
+              @click="openInNewWindow(scope.row, 'frozen')"
               style="
                 max-width: 300px;
                 overflow: hidden;
