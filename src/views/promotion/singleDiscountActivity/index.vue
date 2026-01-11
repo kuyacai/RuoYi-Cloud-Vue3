@@ -110,9 +110,9 @@
         </el-form-item>
 
         <!-- 开始时间 -->
-        <el-form-item label="开始时间" prop="startTime">
+        <el-form-item label="开始时间" prop="startTimeUtc">
           <el-date-picker
-            v-model="form.startTime"
+            v-model="form.startTimeUtc"
             type="datetime"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DD HH:mm:ss"
@@ -122,9 +122,9 @@
         </el-form-item>
 
         <!-- 结束时间 -->
-        <el-form-item label="结束时间" prop="endTime">
+        <el-form-item label="结束时间" prop="endTimeUtc">
           <el-date-picker
-            v-model="form.endTime"
+            v-model="form.endTimeUtc"
             type="datetime"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DD HH:mm:ss"
@@ -290,8 +290,8 @@ const data = reactive({
     activityName: null,
     shopId: null,
     discountType: null,
-    startTime: null,
-    endTime: null,
+    startTimeUtc: null,
+    endTimeUtc: null,
     discountStatus: null,
     platformActivityId: null,
     notes: null,
@@ -303,10 +303,10 @@ const data = reactive({
       { required: true, message: "活动名称不能为空", trigger: "blur" },
     ],
     shopId: [{ required: true, message: "店铺ID不能为空", trigger: "blur" }],
-    startTime: [
+    startTimeUtc: [
       { required: true, message: "开始时间不能为空", trigger: "blur" },
     ],
-    endTime: [{ required: true, message: "结束时间不能为空", trigger: "blur" }],
+    endTimeUtc: [{ required: true, message: "结束时间不能为空", trigger: "blur" }],
   },
 });
 
@@ -336,8 +336,8 @@ function reset() {
     activityName: null,
     shopId: null,
     discountType: "fixed_price", // 保持默认值
-    startTime: null,
-    endTime: null,
+    startTimeUtc: null,
+    endTimeUtc: null,
     discountStatus: null,
     platformActivityId: null,
     notes: null,

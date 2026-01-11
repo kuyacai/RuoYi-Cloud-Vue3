@@ -145,11 +145,11 @@
       <el-table-column
         label="添加时间"
         align="center"
-        prop="gmtCreate"
+        prop="createdAtUtc"
         width="180"
       >
         <template #default="scope">
-          <span>{{ parseTime(scope.row.gmtCreate) }}</span>
+          <span>{{ parseTime(scope.row.createdAtUtc) }}</span>
         </template>
       </el-table-column>
     </el-table>

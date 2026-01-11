@@ -34,8 +34,8 @@
         
         <el-descriptions-item label="活动时间" label-class-name="description-label">
           <div class="time-info">
-            <div>{{ parseTime(cardData.startTime) }}</div>
-            <div>{{ parseTime(cardData.endTime) }}</div>
+            <div>{{ parseTime(cardData.startTimeUtc) }}</div>
+            <div>{{ parseTime(cardData.endTimeUtc) }}</div>
           </div>
         </el-descriptions-item>
         
@@ -64,8 +64,8 @@
 
         <el-descriptions-item label="创建时间" label-class-name="description-label">
           <div class="time-info">
-            <div>{{ parseTime(cardData.gmtCreate) }}</div>
-            <div>{{ parseTime(cardData.gmtModified) }}</div>
+            <div>{{ parseTime(cardData.createdAtUtc) }}</div>
+            <div>{{ parseTime(cardData.updateAtUtc) }}</div>
           </div>
         </el-descriptions-item>
 

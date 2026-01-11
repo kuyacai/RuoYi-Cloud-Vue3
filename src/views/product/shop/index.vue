@@ -25,17 +25,17 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="创建时间" prop="gmtCreate">
+      <el-form-item label="创建时间" prop="createdAtUtc">
         <el-date-picker clearable
-          v-model="queryParams.gmtCreate"
+          v-model="queryParams.createdAtUtc"
           type="date"
           value-format="YYYY-MM-DD"
           placeholder="请选择创建时间">
         </el-date-picker>
       </el-form-item>
-      <el-form-item label="修改时间" prop="gmtModified">
+      <el-form-item label="修改时间" prop="updatedAtUtc">
         <el-date-picker clearable
-          v-model="queryParams.gmtModified"
+          v-model="queryParams.updatedAtUtc"
           type="date"
           value-format="YYYY-MM-DD"
           placeholder="请选择修改时间">
@@ -97,14 +97,14 @@
       <el-table-column label="所有者ID" align="center" prop="ownerId" />
       <el-table-column label="店铺状态" align="center" prop="shopStatus" />
       <el-table-column label="店铺描述" align="center" prop="shopDescription" />
-      <el-table-column label="创建时间" align="center" prop="gmtCreate" width="180">
+      <el-table-column label="创建时间" align="center" prop="createdAtUtc" width="180">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.gmtCreate, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.createdAtUtc, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="修改时间" align="center" prop="gmtModified" width="180">
+      <el-table-column label="修改时间" align="center" prop="updatedAtUtc" width="180">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.gmtModified, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.updatedAtUtc, '{y}-{m}-{d}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
@@ -138,17 +138,17 @@
         <el-form-item label="店铺描述" prop="shopDescription">
           <el-input v-model="form.shopDescription" type="textarea" placeholder="请输入内容" />
         </el-form-item>
-        <el-form-item label="创建时间" prop="gmtCreate">
+        <el-form-item label="创建时间" prop="createdAtUtc">
           <el-date-picker clearable
-            v-model="form.gmtCreate"
+            v-model="form.createdAtUtc"
             type="date"
             value-format="YYYY-MM-DD"
             placeholder="请选择创建时间">
           </el-date-picker>
         </el-form-item>
-        <el-form-item label="修改时间" prop="gmtModified">
+        <el-form-item label="修改时间" prop="updatedAtUtc">
           <el-date-picker clearable
-            v-model="form.gmtModified"
+            v-model="form.updatedAtUtc"
             type="date"
             value-format="YYYY-MM-DD"
             placeholder="请选择修改时间">
@@ -190,8 +190,8 @@ const data = reactive({
     ownerId: null,
     shopStatus: null,
     shopDescription: null,
-    gmtCreate: null,
-    gmtModified: null
+    createdAtUtc: null,
+    updatedAtUtc: null
   },
   rules: {
     shopName: [
@@ -206,10 +206,10 @@ const data = reactive({
     shopStatus: [
       { required: true, message: "店铺状态不能为空", trigger: "change" }
     ],
-    gmtCreate: [
+    createdAtUtc: [
       { required: true, message: "创建时间不能为空", trigger: "blur" }
     ],
-    gmtModified: [
+    updatedAtUtc: [
       { required: true, message: "修改时间不能为空", trigger: "blur" }
     ]
   }
@@ -242,8 +242,8 @@ function reset() {
     ownerId: null,
     shopStatus: null,
     shopDescription: null,
-    gmtCreate: null,
-    gmtModified: null
+    createdAtUtc: null,
+    updatedAtUtc: null
   }
   proxy.resetForm("shopRef")
 }

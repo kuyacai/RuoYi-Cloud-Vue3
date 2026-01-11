@@ -106,7 +106,7 @@
       >
         <template #default="scope">
           <span>{{
-            scope.row.finishTime ? parseTime(scope.row.finishTime) : "-"
+            scope.row.finishTimeUtc ? parseTime(scope.row.finishTimeUtc) : "-"
           }}</span>
         </template>
       </el-table-column>
