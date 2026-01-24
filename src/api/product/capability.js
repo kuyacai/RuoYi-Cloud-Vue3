@@ -42,3 +42,10 @@ export function delCapability(capabilityId) {
     method: 'delete'
   })
 }
+// 校验标识是否唯一
+export function checkCapabilityIdUnique(capabilityId) {
+  return request({
+    url: '/product/capability/checkUnique/' + capabilityId,
+    method: 'get'
+  })
+}
