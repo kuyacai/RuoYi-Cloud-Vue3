@@ -77,17 +77,14 @@
                     </el-tag>
                   </el-descriptions-item>
                   <el-descriptions-item label="人工干预">
-                  <el-tag
+                    <el-tag
                       :type="
-                        node.manualStatus?.code === 'yes'
-                          ? 'danger'
-                          : 'success'
+                        node.manualStatus?.code === 'yes' ? 'danger' : 'success'
                       "
                     >
                       {{ node.manualStatus?.label || node.manualStatus }}
                     </el-tag>
-                  
-                </el-descriptions-item>
+                  </el-descriptions-item>
                 </el-descriptions>
               </div>
             </el-card>
@@ -125,7 +122,7 @@
     <el-dialog
       :title="nodeTitle"
       v-model="nodeEditOpen"
-      width="650px"
+      width="700px"
       append-to-body
     >
       <el-form ref="nodeRef" :model="form" :rules="rules" label-width="100px">
@@ -142,24 +139,16 @@
             button
           />
         </el-form-item>
-        <el-form-item label="默认参数" prop="defaultParams">
-          <el-input
-            v-model="form.defaultParams"
-            type="textarea"
-            :rows="6"
-            placeholder="JSON格式参数"
-            style="font-family: monospace"
-          />
-        </el-form-item>
-        <el-form-item label="输入映射" prop="inputMapping">
-          <el-input
-            v-model="form.inputMapping"
-            type="textarea"
-            :rows="3"
-            placeholder='{"target": "prev_node.output"}'
-            style="font-family: monospace"
-          />
-        </el-form-item>
+
+        <el-divider content-position="left">业务参数配置</el-divider>
+        <ParameterConfig
+          v-model="form.defaultParams"
+          :schema="currentCapabilitySchema"
+          mode="render"
+          @select-variable="handleSelectVariable"
+        />
+
+        <el-divider content-position="left">高级设置</el-divider>
         <el-form-item label="人工节点">
           <EnumRadioGroup
             v-model="form.manualStatus"
@@ -172,6 +161,51 @@
         <el-button @click="nodeEditOpen = false">取 消</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      title="选择上游变量"
+      v-model="varPickerOpen"
+      width="600px"
+      append-to-body
+    >
+      <div class="variable-picker-list">
+        <div
+          v-for="pNode in availablePrevNodes"
+          :key="pNode.nodeOrder"
+          class="p-node-group"
+        >
+          <div class="p-node-header">
+            <el-tag size="small">节点 {{ pNode.nodeOrder }}</el-tag>
+            <span class="ml-2 font-bold">{{ pNode.nodeName }}</span>
+          </div>
+          <div class="field-list">
+            <el-button
+              link
+              type="primary"
+              @click="doInsert(pNode.nodeOrder, 'data')"
+            >
+              全部输出 (data)
+            </el-button>
+            <template
+              v-if="
+                pNode.outputSchemaFields && pNode.outputSchemaFields.length > 0
+              "
+            >
+              <el-button
+                v-for="f in pNode.outputSchemaFields"
+                :key="f.name"
+                link
+                type="success"
+                @click="doInsert(pNode.nodeOrder, f.name)"
+              >
+                {{ f.label }} ({{ f.name }})
+              </el-button>
+            </template>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -183,27 +217,44 @@ import {
   updateNode,
   delNodeAndResort,
 } from "@/api/product/nodeDefinition";
-import { listCapability } from "@/api/product/capability";
+import { listCapability, getCapability } from "@/api/product/capability";
 import { useRoute, useRouter } from "vue-router";
-import { ref, reactive, onMounted, getCurrentInstance, toRefs } from "vue";
+import {
+  ref,
+  reactive,
+  onMounted,
+  getCurrentInstance,
+  toRefs,
+  computed,
+} from "vue";
 import { ArrowDown } from "@element-plus/icons-vue";
 import EnumRadioGroup from "@/components/EnumRadioGroup/index.vue";
+import ParameterConfig from "@/components/ParameterConfig";
+
 const route = useRoute();
 const router = useRouter();
 const { proxy } = getCurrentInstance();
 
-// 数据定义
+// 基础响应式数据
 const definitionId = ref(route.query.definitionId);
 const workflowName = ref(route.query.workflowName);
 const nodeList = ref([]);
 const loading = ref(false);
-
 const capabilityList = ref([]);
 const capSearchOpen = ref(false);
 const capLoading = ref(false);
-
 const nodeEditOpen = ref(false);
 const nodeTitle = ref("");
+const currentCapabilitySchema = ref({ fields: [] });
+
+// 变量拾取控制
+const varPickerOpen = ref(false);
+const currentFieldPath = ref("");
+const availablePrevNodes = computed(() => {
+  return nodeList.value.filter(
+    (n) => n.nodeOrder < (form.value.nodeOrder || 999)
+  );
+});
 
 const data = reactive({
   form: {},
@@ -216,17 +267,23 @@ const data = reactive({
 });
 const { form, rules } = toRefs(data);
 
-/** 1. 加载节点列表 */
+/** 1. 加载节点列表时，关联获取 output_schema */
 function getList() {
   if (!definitionId.value) return;
   loading.value = true;
-  listNode({ definitionId: definitionId.value }).then((res) => {
-    nodeList.value = res.rows; // 后端已根据 nodeOrder 排序
+  listNode({ definitionId: definitionId.value }).then(async (res) => {
+    const nodes = res.rows;
+    // 并行获取每个节点的能力定义，以获取 output_schema 
+    for (let node of nodes) {
+      const capRes = await getCapability(node.capabilityId);
+      node.outputSchemaFields = capRes.data.outputSchema?.fields || [];
+    }
+    nodeList.value = nodes;
     loading.value = false;
   });
 }
 
-/** 2. 添加节点 - 打开能力选择器 */
+/** 打开能力选择 */
 function openCapabilitySelect() {
   capLoading.value = true;
   capSearchOpen.value = true;
@@ -236,151 +293,161 @@ function openCapabilitySelect() {
   });
 }
 
-/** 3. 选中能力后的初始化 */
+/** 选中能力初始化 */
 function onCapabilitySelected(cap) {
   reset();
-  form.value.capabilityId = cap.capabilityId; // 必须传给后端
-  form.value.definitionId = definitionId.value; // 必须传给后端
+  form.value.capabilityId = cap.capabilityId;
   form.value.nodeName = cap.name;
-
-  // 继承能力算子的执行器类型和人工/自动状态
-  //form.value.handlerType = cap.handlerType;
-  //form.value.manualStatus = cap.manualStatus; // 初始设为能力算子的状态，用户可修改
-  // 转换枚举对象为 code 字符串（你之前已处理）
-  if (form.value.handlerType && typeof form.value.handlerType === "object") {
-    cap.handlerType = cap.handlerType.code;
-  }
-  if (form.value.manualStatus && typeof form.value.manualStatus === "object") {
-    cap.manualStatus = cap.manualStatus.code;
-  }
-
-  form.value.defaultParams = JSON.stringify(cap.configSchema || {}, null, 2);
-  form.value.inputMapping = "{}";
+  currentCapabilitySchema.value = cap.configSchema || { fields: [] };
+  form.value.defaultParams = {};
+  form.value.inputMapping = {};
   form.value.nodeOrder = nodeList.value.length + 1;
-
   capSearchOpen.value = false;
   nodeTitle.value = "新增节点配置";
   nodeEditOpen.value = true;
 }
 
-/** 4. 修改节点详情 */
-/** 修改按钮操作 */
+/** 编辑详情回显 [cite: 38, 39] */
 function handleUpdate(row) {
-  reset(); // 重置表单，确保状态干净
-  const nodeDefId = row.nodeDefId;
-  
-  getNode(nodeDefId).then(response => {
-    const data = response.data;
-    
-    // 【核心修改】：处理枚举对象，提取 code 字符串
-    // 处理执行类型
-    if (data.handlerType && typeof data.handlerType === 'object') {
-      data.handlerType = data.handlerType.code;
-    }
-    // 处理人工干预状态 (对应数据库 is_manual 字段)
-    if (data.manualStatus && typeof data.manualStatus === 'object') {
-      data.manualStatus = data.manualStatus.code;
-    }
-    // 如果有 activeStatus 也要处理
-    if (data.activeStatus && typeof data.activeStatus === 'object') {
-      data.activeStatus = data.activeStatus.code;
-    }
-
-    // 处理 JSON 字符串展示
-    form.value = {
-      ...data,
-      defaultParams: JSON.stringify(data.defaultParams || {}, null, 2),
-      inputMapping: JSON.stringify(data.inputMapping || {}, null, 2)
-    };
-    
-    nodeTitle.value = "修改节点配置";
-    nodeEditOpen.value = true;
+  reset();
+  getNode(row.nodeDefId).then((response) => {
+    const d = response.data;
+    getCapability(d.capabilityId).then((capRes) => {
+      currentCapabilitySchema.value = capRes.data.configSchema || {
+        fields: [],
+      };
+      // 字段转换处理
+      form.value = {
+        ...d,
+        handlerType: d.handlerType?.code || d.handlerType,
+        manualStatus: d.manualStatus?.code || d.manualStatus,
+        defaultParams: d.defaultParams || {},
+        inputMapping: d.inputMapping || {},
+      };
+      nodeTitle.value = "修改节点配置";
+      nodeEditOpen.value = true;
+    });
   });
 }
 
-/** 5. 提交表单 (新增或修改) */
+/** 核心提交逻辑：处理 definitionId 缺失与 inputMapping 自动生成 [cite: 41] */
+/** 5. 提交表单 */
 function submitForm() {
   proxy.$refs["nodeRef"].validate((valid) => {
     if (valid) {
-      try {
-        const postData = { ...form.value };
-        // 确保这两个关键 ID 存在
-        postData.definitionId = definitionId.value;
-        postData.capabilityId = form.value.capabilityId;
+      const postData = JSON.parse(JSON.stringify(form.value)); // 深拷贝
+      postData.definitionId = definitionId.value;
 
-        // 解析字符串回 JSON
-        postData.defaultParams = JSON.parse(postData.defaultParams);
-        postData.inputMapping = JSON.parse(postData.inputMapping);
+      // 递归提取所有包含 #{} 的映射关系
+      const mapping = {};
+      const extractMapping = (obj, prefix = '') => {
+        if (!obj || typeof obj !== 'object') return;
+        
+        Object.keys(obj).forEach(key => {
+          const val = obj[key];
+          const fullPath = prefix ? `${prefix}.${key}` : key;
+          
+          if (typeof val === 'string' && val.includes('#{')) {
+            mapping[fullPath] = val; // 记录路径和表达式
+          } else if (typeof val === 'object' && val !== null) {
+            extractMapping(val, fullPath);
+          }
+        });
+      };
 
-        if (postData.nodeDefId != null) {
-          updateNode(postData).then(() => {
-            proxy.$modal.msgSuccess("修改成功");
-            nodeEditOpen.value = false;
-            getList();
-          });
-        } else {
-          addNode(postData).then(() => {
-            proxy.$modal.msgSuccess("新增成功");
-            nodeEditOpen.value = false;
-            getList();
-          });
-        }
-      } catch (e) {
-        proxy.$modal.msgError("JSON格式错误，请检查参数");
-      }
+      extractMapping(postData.defaultParams);
+      postData.inputMapping = mapping; // 此时 mapping 将包含 {"aa.bb.b1": "#{#node6['price']}"}
+
+      const action = postData.nodeDefId != null ? updateNode : addNode;
+      action(postData).then(() => {
+        proxy.$modal.msgSuccess("操作成功");
+        nodeEditOpen.value = false;
+        getList();
+      });
     }
   });
 }
+/** 变量拾取处理 */
+function handleSelectVariable(path) {
+  currentFieldPath.value = path;
+  varPickerOpen.value = true;
+}
 
-/** 6. 删除节点 (调用重排接口) */
+function insertVariable(order) {
+  const expression = `#{#node${order}['data']}`;
+  // 简易深层赋值逻辑
+  const keys = currentFieldPath.value.split(".");
+  let curr = form.value.defaultParams;
+  keys.forEach((key, i) => {
+    if (i === keys.length - 1) curr[key] = expression;
+    else {
+      if (!curr[key]) curr[key] = {};
+      curr = curr[key];
+    }
+  });
+  varPickerOpen.value = false;
+}
+
 function handleDelete(node) {
   proxy.$modal
-    .confirm(`是否确认删除节点 "${node.nodeName}"？删除后后续节点将自动前移。`)
+    .confirm(`确认删除节点 "${node.nodeName}"？`)
     .then(() => {
       return delNodeAndResort(node.nodeDefId, definitionId.value);
     })
     .then(() => {
       getList();
       proxy.$modal.msgSuccess("删除成功");
-    })
-    .catch(() => {});
+    });
 }
 
-/** 7. 自动重排 (调用后端 resort 接口，如有) */
 function handleAutoOrder() {
-  // 此处可调用你之前在 Service 实现的 resort 逻辑
-  proxy.$modal.msgInfo("系统已按当前顺序自动对齐");
   getList();
+}
+
+/** 插入变量逻辑修改 */
+function doInsert(order, fieldName) {
+  // 生成格式：#{#node6['price']} 或 #{#node6['data']}
+  const expression = `#{#node${order}['${fieldName}']}`;
+  
+  // 递归赋值给 defaultParams 中的深层对象
+  const keys = currentFieldPath.value.split('.');
+  let curr = form.value.defaultParams;
+  keys.forEach((key, i) => {
+    if (i === keys.length - 1) {
+      curr[key] = expression;
+    } else {
+      if (!curr[key]) curr[key] = {};
+      curr = curr[key];
+    }
+  });
+  varPickerOpen.value = false;
 }
 
 function reset() {
   form.value = {
     nodeDefId: undefined,
-    definitionId: definitionId.value,
+    definitionId: definitionId.value, // [cite: 44]
     nodeName: undefined,
     nodeOrder: 1,
     capabilityId: undefined,
     handlerType: "python_agent",
     manualStatus: "no",
-    defaultParams: "{}",
-    inputMapping: "{}",
+    defaultParams: {},
+    inputMapping: {},
   };
 }
 
 function goBack() {
   router.push("/workflow/definition");
 }
-
-onMounted(() => {
-  getList();
-});
+onMounted(() => getList());
 </script>
 
 <style scoped>
+/* [cite: 45, 46, 47, 48, 49] */
 .node-list-container {
   padding: 20px;
   background: #f8f9fa;
-  min-height: 500px;
   border-radius: 8px;
 }
 .nodes-wrapper {
@@ -420,7 +487,14 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
 }
-.mr-2 {
-  margin-right: 8px;
+.var-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+.ml-2 {
+  margin-left: 8px;
 }
 </style>

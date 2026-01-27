@@ -98,6 +98,17 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="是否人工" align="center" prop="manualStatus">
+        <template #default="scope">
+          <el-tag
+            :type="
+              scope.row.manualStatus?.code === 'yes' ? 'success' : 'warning'
+            "
+          >
+            {{ scope.row.manualStatus?.label }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" align="center" prop="activeStatus">
         <template #default="scope">
           <el-tag
@@ -110,9 +121,9 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="默认参数 (JSON)"
+        label="配置项定义 (JSON)"
         align="center"
-        prop="defaultParams"
+        prop="configSchema"
         :show-overflow-tooltip="true"
       />
       <el-table-column
@@ -149,7 +160,7 @@
       @pagination="getList"
     />
 
-    <el-dialog :title="title" v-model="open" width="600px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="700px" append-to-body>
       <el-form
         ref="capabilityRef"
         :model="form"
@@ -183,19 +194,34 @@
             enum-name="ManualStatus"
           />
         </el-form-item>
-        <el-form-item label="默认参数" prop="defaultParams">
-          <el-input
-            v-model="form.defaultParams"
-            type="textarea"
-            placeholder='请输入 JSON 格式参数, 例如: {"limit": 100}'
-            :rows="5"
-          />
+
+        <el-divider content-position="left"
+          >参数输入定义 (Config Schema)</el-divider
+        >
+        <el-form-item label-width="0">
+          <div class="schema-container">
+            <ParameterConfig v-model="form.configSchema" mode="definition" />
+          </div>
+          <div class="help-text">
+            提示：此处定义的 Key 将作为 Python 算子执行时 input_params 的键。
+          </div>
         </el-form-item>
+
+        <el-divider content-position="left"
+          >参数输出协议 (Output Schema)</el-divider
+        >
+        <el-form-item label-width="0">
+          <div class="schema-container output">
+            <ParameterConfig v-model="form.outputSchema" mode="definition" />
+          </div>
+          <div class="help-text">
+            提示：此处定义算子执行完成后，写入
+            <b>output_data</b> 的字段结构，供下游节点引用。
+          </div>
+        </el-form-item>
+
         <el-form-item label="激活状态" prop="activeStatus">
-          <EnumSwitch
-            v-model="form.activeStatus"
-            enum-name="ActiveStatus"
-          />
+          <EnumSwitch v-model="form.activeStatus" enum-name="ActiveStatus" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -220,6 +246,7 @@ import {
 import EnumSelect from "@/components/EnumSelect/index.vue";
 import EnumRadioGroup from "@/components/EnumRadioGroup/index.vue";
 import EnumSwitch from "@/components/EnumSwitch/index.vue";
+import ParameterConfig from "@/components/ParameterConfig";
 
 const { proxy } = getCurrentInstance();
 
@@ -232,7 +259,8 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
-
+// 用于记录原始 ID 的变量（原有逻辑）
+const originCapabilityId = ref("");
 
 /** 自定义校验规则：校验标识格式和唯一性 */
 const validateCapabilityId = (rule, value, callback) => {
@@ -261,7 +289,6 @@ const validateCapabilityId = (rule, value, callback) => {
   }
 };
 
-
 const data = reactive({
   form: {},
   queryParams: {
@@ -283,7 +310,6 @@ const data = reactive({
 });
 
 const { queryParams, form, rules } = toRefs(data);
-const originCapabilityId = ref("");
 
 /** 查询列表 */
 function getList() {
@@ -298,7 +324,7 @@ function getList() {
 const handleIdInput = (val) => {
   // 仅在新增模式下处理，强制转小写并过滤非法字符
   if (!originCapabilityId.value) {
-    form.value.capabilityId = val.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    form.value.capabilityId = val.toLowerCase().replace(/[^a-z0-9_]/g, "");
   }
 };
 
@@ -313,7 +339,8 @@ function reset() {
     name: undefined,
     handlerType: "python_agent",
     manualStatus: "no",
-    defaultParams: "{}",
+    configSchema: { fields: [] }, // 初始化输入结构
+    outputSchema: { fields: [] }, // 初始化输出结构
     activeStatus: "enable",
   };
   // 重置校验残余
@@ -353,28 +380,35 @@ function handleAdd() {
 }
 
 /** 修改按钮操作 */
+/** 修改按钮操作 */
 function handleUpdate(row) {
   reset();
-  // 此时 row.capabilityId 是肯定有值的
-  const _capabilityId = row.capabilityId || capabilityIds.value;
-  getCapability(_capabilityId).then(response => {
+  const capabilityId = row.capabilityId || capabilityIds.value[0];
+  console.log(capabilityId)
+  getCapability(capabilityId).then((response) => {
     const data = response.data;
-    
-    // 转换枚举对象为 code 字符串（你之前已处理）
-    if (data.handlerType && typeof data.handlerType === 'object') {
+
+    // 枚举处理逻辑（保持你原有的逻辑）
+    if (data.handlerType && typeof data.handlerType === "object") {
       data.handlerType = data.handlerType.code;
     }
-    if (data.activeStatus && typeof data.activeStatus === 'object') {
+    if (data.activeStatus && typeof data.activeStatus === "object") {
       data.activeStatus = data.activeStatus.code;
     }
-    if (data.manualStatus && typeof data.manualStatus === 'object') {
+    if (data.manualStatus && typeof data.manualStatus === "object") {
       data.manualStatus = data.manualStatus.code;
     }
 
+    // 重点：如果 configSchema 为空，初始化一个基础结构
+    if (!data.configSchema || !data.configSchema.fields) {
+      data.configSchema = { fields: [] };
+    }
+    if (!data.outputSchema || !data.outputSchema.fields) {
+      data.outputSchema = { fields: [] };
+    }
+
     form.value = data;
-    // 【新增】：记录原始标识，用于校验函数对比
-    originCapabilityId.value = data.capabilityId; 
-    
+    originCapabilityId.value = data.capabilityId;
     open.value = true;
     title.value = "修改节点能力元数据";
   });
@@ -386,7 +420,7 @@ function submitForm() {
     if (valid) {
       // 浅拷贝一份数据，避免影响页面显示
       const submitData = { ...form.value };
-      
+
       // 剔除时间戳字段，由后端 FieldFill 自动填充
       delete submitData.createdAtUtc;
       delete submitData.updatedAtUtc;
@@ -427,7 +461,21 @@ getList();
 </script>
 
 <style scoped>
-.dialog-footer {
-  text-align: right;
+.dialog-footer { text-align: right; }
+.schema-container {
+  width: 100%;
+  border: 1px solid #eee;
+  padding: 10px;
+  border-radius: 4px;
+}
+.schema-container.output {
+  border-left: 4px solid #67c23a; /* 用绿色区分输出 */
+  background-color: #f9fdf8;
+}
+.help-text {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 5px;
+  line-height: 1.4;
 }
 </style>

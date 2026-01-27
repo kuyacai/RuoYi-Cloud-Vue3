@@ -1,0 +1,62 @@
+.parameter-config-container {
+  /* 每一行参数的包装器 */
+  .config-item-row {
+    border: 1px solid #e4e7ed;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #fff;
+    position: relative;
+    transition: all 0.3s;
+
+    &:hover {
+      box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+  }
+
+  /* 子属性区域：不再嵌套在列里，而是另起一行 */
+  .children-area {
+    margin-top: 15px;
+    padding-left: 20px;
+    border-left: 2px solid #409eff; // 用明显的实线表示从属
+    background: #fcfcfc;
+  }
+
+  /* 修复后的样式 */
+.readonly-value {
+  padding: 4px 0;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.text-content {
+  color: #606266;
+  font-weight: 500;
+  word-break: break-all;
+  line-height: 1.5;
+  font-size: 13px;
+  
+  /* 当检测到是表达式时的样式 */
+  &.is-expression {
+    color: #409eff;
+    background-color: #ecf5ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace; /* 表达式通常用等宽字体 */
+    border: 1px solid #d9ecff;
+  }
+}
+
+.nested-level {
+  padding-left: 20px;
+  border-left: 1px dashed #e4e7ed;
+  margin-left: 10px;
+}
+}

@@ -42,3 +42,12 @@ export function delDefinition(definitionId) {
     method: 'delete'
   })
 }
+
+// 启动流程实例
+export function startWorkflow(definitionId, variables) {
+  return request({
+    url: '/product/instance/start/' + definitionId,
+    method: 'post',
+    data: variables // 这里的 variables 就是用户输入的 JSON 对象
+  })
+}
